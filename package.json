@@ -1,0 +1,19 @@
+{
+  "name": "neec-quiz-2023",
+  "version": "1.0.0",
+  "description": "Quiz game using Socket.IO",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/katsube/neec-quiz-2023.git"
+  },
+  "keywords": [],
+  "author": "M.Katsube",
+  "bugs": {
+    "url": "https://github.com/katsube/neec-quiz-2023/issues"
+  },
+  "homepage": "https://github.com/katsube/neec-quiz-2023#readme"
+}
