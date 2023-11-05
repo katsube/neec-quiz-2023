@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf8">
+  <title>クイズゲーム</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+
+<section id="nowmatching">
+  <div class="inner">
+    <h1>
+      <img src="image/icon/matching.svg" width="80">
+      マッチング中
+    </h1>
+    <p>Please wait a moment.</p>
+  </div>
+</section>
+
+<section id="gamewindow">
+  <h1 style="color:white">マッチングした！</h1>
+</section>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="js/user.js"></script>
+<script>
+const user = new User();
+
+//----------------------------------------
+// STEP0. 前画面の情報を取り出す
+//----------------------------------------
+// 自分の名前が設定されているか確認
+if( ! user.name ){
+  alert('名前が設定されていません');
+  location.href = 'name.html';  // 名前がない場合は、名前入力画面に遷移
+}
+
+//----------------------------------------
+// STEP1. サーバに接続
+//----------------------------------------
+// サーバに接続
+const socket = io();
+
+// トークンが返ってきたら入室する
+socket.on('token', (token)=>{
+  console.log('token', token);
+  user.token = token;
+
+  // 入室する
+  socket.emit('join', {
+    token: user.token,
+    name: user.name
+  });
+});
+
+// 二人揃ったらサーバから開始の合図が来る
+socket.on('start', (data)=>{
+  console.log('start', data);
+
+  // 画面を切り替える
+  document.querySelector('#nowmatching').style.display = 'none';
+  document.querySelector('#gamewindow').style.display = 'block';
+});
+
+//----------------------------------------
+// STEP2. ゲーム開始
+//----------------------------------------
+
+</script>
+</body>
+</html>
