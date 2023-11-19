@@ -29,7 +29,7 @@ class User{
     const key   = `${this.#STORAGE_KEY}-${name}`;
     const value = localStorage.getItem(key);
     const json  = JSON.parse(value);
-    return value;
+    return json;
   }
 
   #saveLocalStorage(name, value){
