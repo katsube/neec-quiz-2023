@@ -7,6 +7,9 @@ const app  = express();
 const http = require('http').createServer(app);
 const io   = require('socket.io')(http);
 const util = require('./lib/util');
+const config = require('./lib/config');
+const Question = require('./lib/question');
+const { create } = require('domain');
 
 //----------------------------------------
 // express(webサーバ)の設定
@@ -42,10 +45,12 @@ const WAITING_ROOM = [
 const BATTLE_ROOM = [
   // {
   //   name: 'battle1',
+  //   question: "スイカは野菜である",
+  //   answer: true,
   //   members: [
-  //     {socket:socket, token:1, name:'プレイヤー1'},
-  //     {socket:socket, token:2, name:'プレイヤー2'},
-  //   ]
+  //     {socket:socket, token:1, name:'プレイヤー1', pos:{x:1, y:1}, size:{width:10, height:10}},
+  //     {socket:socket, token:2, name:'プレイヤー2', pos:{x:1, y:1}, size:{width:10, height:10}},
+  //   ],
   // }
 ];
 let BATTLE_ID = 1;    // 戦闘部屋のIDの最大値
@@ -113,9 +118,14 @@ function doMatching(players=2){
   //----------------------------------------
   // 戦闘用の部屋を作る
   //----------------------------------------
+  const q = new Question();
+  q.setQuestion();
+
   const room = {
     name: `battle-${BATTLE_ID++}`,
-    members: members
+    members: members,
+    question: q.getQuestion(),
+    answer: q.getAnswer(),
   };
   BATTLE_ROOM.push(room);
 
@@ -127,5 +137,52 @@ function doMatching(players=2){
     member.socket.join(room.name);
     console.log('[match]', room.name, member.token, member.name);
   }
-  io.to(room.name).emit('start');
+
+  //----------------------------------------
+  // 部屋内の全プレイヤーへ通知
+  //----------------------------------------
+  const data = createInitData(room);
+  io.to(room.name).emit('start', data);
+}
+
+
+/**
+ * クライアントに送信する初期情報を作成
+ *
+ * @param {object} room 戦闘部屋
+ * @returns {object} 初期情報
+ *     {
+ *        question:'スイカは野菜である',
+ *         members: [{token:1, name:'プレイヤー1', avaatr:1, pos:{x:1, y:1}, size:{width:10, height:10}}, ...]},
+ *          answer: pos[{x:1, y:1, width:80, height:80}, {x:1, y:1, width:80, height:80}],
+ *     }
+ */
+function createInitData(room){
+  const data = {
+    question: null,
+    members: [ ],
+    answer: null,
+  };
+
+  // 問題をセット
+  data.question = room.question;
+
+  // メンバー情報を作成
+  const size = config('game.player.size');
+  const pos = config('game.player.pos');
+  for(let i=0; i<room.members.length; i++){
+    const member = room.members[i];
+    data.members.push({
+      token: member.token,
+      name: member.name,
+      avatar: i + 1,
+      pos: pos[i],
+      size: size,
+    });
+  }
+
+  // 回答の位置をセット
+  data.answer = config('game.answer');
+
+  return(data);
 }
