@@ -108,23 +108,30 @@ function doMatching(players=2){
   //----------------------------------------
   // メンバー数分のプレイヤーを取り出す
   //----------------------------------------
+  const pos  = config('game.player.pos');   // プレイヤーの初期位置（配列）
+  const size = config('game.player.size');  // プレイヤー画像のサイズ
+
   const members = [ ];
   for(let i=0; i<players; i++){
-    const member = WAITING_ROOM.shift();
-    members.push(member);
+    const member  = WAITING_ROOM.shift();
+    member.pos    = pos[i];   // 初期位置
+    member.size   = size;     // 画像のサイズ
+    member.avatar = i + 1;    // 1:アルパカ, 2:パンダ
+
+    members.push(member);     // 追加
   }
 
   //----------------------------------------
   // 戦闘用の部屋を作る
   //----------------------------------------
   const q = new Question();
-  q.setQuestion();
+  q.setQuestion();  // 問題を決定
 
   const room = {
-    name: `battle-${BATTLE_ID++}`,
-    members: members,
-    question: q.getQuestion(),
-    answer: q.getAnswer(),
+    name: `battle-${BATTLE_ID++}`,  // 部屋の名前
+    members: members,               // 対戦メンバー
+    question: q.getQuestion(),      // 問題文
+    answer: q.getAnswer(),          // 回答（クライアントには渡さない）
   };
   BATTLE_ROOM.push(room);
 
@@ -151,9 +158,9 @@ function doMatching(players=2){
  * @param {object} room 戦闘部屋
  * @returns {object} 初期情報
  *     {
- *        question:'スイカは野菜である',
- *         members: [{token:1, name:'プレイヤー1', avaatr:1, pos:{x:1, y:1}, size:{width:10, height:10}}, ...]},
- *          answer: pos[{x:1, y:1, width:80, height:80}, {x:1, y:1, width:80, height:80}],
+ *        question: 'スイカは野菜である',
+ *        members: [{token:1, name:'プレイヤー1', avaatr:1, pos:{x:1, y:1}, size:{width:10, height:10}}, ...]},
+ *        answer: pos[o:{x:1, y:1, width:80, height:80}, x:{...}],
  *     }
  */
 function createInitData(room){
@@ -163,21 +170,14 @@ function createInitData(room){
     answer: null,
   };
 
-  // 問題をセット
+  // 問題文をセット
   data.question = room.question;
 
   // メンバー情報を作成
-  const size = config('game.player.size');
-  const pos = config('game.player.pos');
   for(let i=0; i<room.members.length; i++){
     const member = room.members[i];
-    data.members.push({
-      token: member.token,
-      name: member.name,
-      avatar: i + 1,
-      pos: pos[i],
-      size: size,
-    });
+    delete member.socket;
+    data.members.push(member);
   }
 
   // 回答の位置をセット
