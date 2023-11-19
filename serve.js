@@ -9,7 +9,6 @@ const io   = require('socket.io')(http);
 const util = require('./lib/util');
 const config = require('./lib/config');
 const Question = require('./lib/question');
-const { create } = require('domain');
 
 //----------------------------------------
 // express(webサーバ)の設定
