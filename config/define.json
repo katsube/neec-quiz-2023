@@ -16,7 +16,8 @@
       "size": {
         "width": 120,
         "height": 150
-      }
+      },
+      "speed": 15
     }
   }
 }

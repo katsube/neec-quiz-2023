@@ -76,6 +76,23 @@ io.on('connection', (socket) => {
     });
     console.log('[join]', socket.id, data);
   });
+
+  //---------------------------
+  // [Game] キャラ移動
+  //---------------------------
+  socket.on('move', (data) => {   // {room:'battle-1', token:123, key:50}
+    console.log('[move]', data)
+    const room = util.findRoom(BATTLE_ROOM, data.room);
+    const user = util.findMember(room, data.token);
+
+    // 座標を移動
+    const ismove = moveChara(user, data.key);
+
+    // 移動した場合のみ通知
+    if( ismove ){
+      io.to(data.room).emit('member-move', {token:user.token, pos:user.pos});
+    }
+  });
 });
 
 //----------------------------------------
@@ -158,6 +175,7 @@ function doMatching(players=2){
  * @param {object} room 戦闘部屋
  * @returns {object} 初期情報
  *     {
+ *        room: 'battle1',
  *        question: 'スイカは野菜である',
  *        members: [{token:1, name:'プレイヤー1', avaatr:1, pos:{x:1, y:1}, size:{width:10, height:10}}, ...]},
  *        answer: pos[o:{x:1, y:1, width:80, height:80}, x:{...}],
@@ -165,10 +183,14 @@ function doMatching(players=2){
  */
 function createInitData(room){
   const data = {
+    room: null,
     question: null,
     members: [ ],
     answer: null,
   };
+
+  // 部屋名をセット
+  data.room = room.name;
 
   // 問題文をセット
   data.question = room.question;
@@ -184,4 +206,37 @@ function createInitData(room){
   data.answer = config('game.answer');
 
   return(data);
+}
+
+/**
+ * キャラクターを移動する
+ *
+ * @param {object} user
+ * @param {number} key
+ * @returns {boolean}
+ */
+function moveChara(user, key){
+  const speed = config('game.player.speed');
+  let ismove = true;
+
+  // 上下左右の移動
+  switch(key){
+    case util.KEY.A:  // 左 A
+      user.pos.x -= speed;
+      break;
+    case util.KEY.W:  // 上 W
+      user.pos.y -= speed;
+      break;
+    case util.KEY.D:  // 右 D
+      user.pos.x += speed;
+      break;
+    case util.KEY.S:  // 下 S
+      user.pos.y += speed;
+      break;
+    default:
+      ismove = false;
+      break;
+  }
+
+  return(ismove);
 }

@@ -18,9 +18,14 @@
   </div>
 </section>
 
+
 <section id="gamewindow">
-  <h1 style="color:white">マッチングした！</h1>
+  <h1 id="question"></h1>
+
+  <div id="answer">
+  </div>
 </section>
+
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="js/user.js"></script>
@@ -58,6 +63,25 @@ socket.on('token', (token)=>{
 socket.on('start', (data)=>{
   console.log('start', data);
 
+  // 部屋情報を保存
+  user.room = data.room;
+
+  // 問題を表示する
+  //   question: "スイカは野菜である"
+  document.querySelector('#question').textContent = data.question;
+
+  // キャラクターを表示する
+  //   members: [{token:1, name:'プレイヤー1', avatr:1, pos:{x:1, y:1}, size:{width:10, height:10}}, ...]},
+  for(let i=0; i<data.members.length; i++){
+    const member = data.members[i];
+    drawUnit(member.token, member);
+  }
+
+  // ◯✕を表示する
+  //   answer: [o:{x:1, y:1, width:80, height:80}, x:{...}],
+  drawAnswerItem('o', data.answer.o);
+  drawAnswerItem('x', data.answer.x);
+
   // 画面を切り替える
   document.querySelector('#nowmatching').style.display = 'none';
   document.querySelector('#gamewindow').style.display = 'block';
@@ -66,7 +90,103 @@ socket.on('start', (data)=>{
 //----------------------------------------
 // STEP2. ゲーム開始
 //----------------------------------------
+// WASDを押したらサーバに送信
+window.addEventListener('keydown', (e)=>{
+  const data = {
+    room: user.room,
+    token: user.token,
+    key: e.keyCode
+  };
+  socket.emit('move', data);
+  console.log('keydown', data);
+});
 
+// サーバから移動の合図が来たら移動する
+socket.on('member-move', (data)=>{    // {token:1, pos:{x:1, y:1}}
+  drawUnit(data.token, data);
+  console.log('member-move', data);
+});
+
+/**
+  * ゲーム画面にユニットを表示する
+  *
+  * @param {string} id ユニットID
+  * @param {object} unit ユニット情報
+  */
+function drawUnit(id, unit){
+  const baseid = `unit-${id}`;
+  let div = document.querySelector(`#${baseid}`)
+
+  //-----------------------------------
+  // 既存の要素が無ければ作成
+  //-----------------------------------
+  if( div === null ){
+    div = document.createElement('div');
+    div.id = baseid;
+    div.classList.add('unit');
+
+    // 画像をセット
+    const image = document.createElement('img');
+    image.src = unit.avatar==1 ? 'image/user/arupaka.png' : 'image/user/panda.png';
+    image.alt = unit.name;
+
+    // プレイヤー名をセット
+    const name  = document.createElement('p');
+    name.innerHTML = unit.name;
+
+    // 画面に追加
+    div.appendChild(name);
+    div.appendChild(image);
+    document.querySelector('#gamewindow').appendChild(div);
+  }
+
+  //-----------------------------------
+  // 座標を移動
+  //-----------------------------------
+  // gamewindowの座標を取得
+  const gamewindow = document.querySelector('#gamewindow');
+  const gamewindowRect = gamewindow.getBoundingClientRect();
+
+  // gamewindow内の座標に変換し移動
+  div.style.top  = (gamewindowRect.top + unit.pos.y) + 'px';
+  div.style.left = (gamewindowRect.left + unit.pos.x) + 'px';
+}
+
+
+/**
+ * ◯✕を表示する
+ *
+ * @param {string} id ユニットID
+ * @param {object} pos 座標
+ */
+function drawAnswerItem(id, pos){
+  console.log('drawAnswer', id, pos);
+  let img = document.querySelector(`#answer-${id}`);
+
+  // 画像が無ければ新規に生成
+  if( img === null ){
+    img = document.createElement('img');
+    img.src = (id==='o')? 'image/quiz/circle.svg':'image/quiz/xmark.svg';
+    img.id = `answer-${id}`;
+    img.style.position = 'absolute';
+    img.style.width = pos.width + 'px';
+    img.style.height = pos.height + 'px';
+    img.style.backgroundColor = (id==='o')? 'lightblue':'lightcoral';
+    img.style.borderRadius = '5px';   // 角を丸くする
+    img.style.zIndex = 25;
+
+    // 画面に追加
+    document.querySelector('#gamewindow').appendChild(img);
+  }
+
+  // gamewindowの座標を取得
+  const gamewindow = document.querySelector('#gamewindow');
+  const gamewindowRect = gamewindow.getBoundingClientRect();
+
+  // 移動
+  img.style.top = (gamewindowRect.top + pos.y) + 'px';
+  img.style.left = (gamewindowRect.left + pos.x) + 'px';
+}
 </script>
 </body>
 </html>
