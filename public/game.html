@@ -29,8 +29,11 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="js/user.js"></script>
+<script src="js/sound.js"></script>
 <script>
 const user = new User();
+const bgm = new Sound();
+bgm.add('battle', 'sound/bgm/bgm_battle.mp3');
 
 //----------------------------------------
 // STEP0. 前画面の情報を取り出す
@@ -85,6 +88,9 @@ socket.on('start', (data)=>{
   // 画面を切り替える
   document.querySelector('#nowmatching').style.display = 'none';
   document.querySelector('#gamewindow').style.display = 'block';
+
+  // 音声を再生する
+  bgm.play('battle', {loop: true, volume: 0.5});
 });
 
 //----------------------------------------
