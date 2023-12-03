@@ -9,6 +9,7 @@ const io   = require('socket.io')(http);
 const util = require('./lib/util');
 const config = require('./lib/config');
 const Question = require('./lib/question');
+const collision = require('./lib/collision');
 
 //----------------------------------------
 // express(webサーバ)の設定
@@ -50,9 +51,16 @@ const BATTLE_ROOM = [
   //     {socket:socket, token:1, name:'プレイヤー1', pos:{x:1, y:1}, size:{width:10, height:10}},
   //     {socket:socket, token:2, name:'プレイヤー2', pos:{x:1, y:1}, size:{width:10, height:10}},
   //   ],
+  //   input: {
+  //     1:{token:1, answer:true, time:123456789},
+  //     2:{token:2, answer:false, time:123456789},
+  //   }
   // }
 ];
 let BATTLE_ID = 1;    // 戦闘部屋のIDの最大値
+
+// 解答パネルの位置、サイズ
+const ANSWER = config('game.answer');
 
 //----------------------------------------
 // [Socket.io] 接続
@@ -87,10 +95,31 @@ io.on('connection', (socket) => {
 
     // 座標を移動
     const ismove = moveChara(user, data.key);
-
-    // 移動した場合のみ通知
     if( ismove ){
+      // メンバーへ通知
       io.to(data.room).emit('member-move', {token:user.token, pos:user.pos});
+
+      // あたり判定
+      if( collision({...user.pos, ...user.size}, ANSWER.o) ){
+        room.input[user.token] = {token:user.token, answer:true, time:Date.now()};
+        console.log('[answer - o]', user.name, room.input)
+      }
+      else if( collision({...user.pos, ...user.size}, ANSWER.x) ){
+        room.input[user.token] = {token:user.token, answer:false, time:Date.now()};
+        console.log('[answer - x]', user.token, room.input)
+      }
+      else{
+        delete room.input[user.token];
+        console.log('[answer - !]', user.token, room.input)
+      }
+
+      // 全員が回答したら結果を通知
+      if( Object.keys(room.input).length >= room.members.length ){
+        //const win = util.calcResult(room.input, room.answer);
+        //console.log('[finish]', user.name, room.input, win);
+        console.log('[finish]');
+        io.to(data.room).emit('finish');
+      }
     }
   });
 });
@@ -149,6 +178,7 @@ function doMatching(players=2){
     members: members,               // 対戦メンバー
     question: q.getQuestion(),      // 問題文
     answer: q.getAnswer(),          // 回答（クライアントには渡さない）
+    input: { },                     // 入力情報
   };
   BATTLE_ROOM.push(room);
 

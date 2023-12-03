@@ -21,9 +21,6 @@
 
 <section id="gamewindow">
   <h1 id="question"></h1>
-
-  <div id="answer">
-  </div>
 </section>
 
 
@@ -31,6 +28,8 @@
 <script src="js/user.js"></script>
 <script src="js/sound.js"></script>
 <script>
+let MODE = 'wait';   // wait:待機中, play:プレイ中
+
 const user = new User();
 const bgm = new Sound();
 bgm.add('battle', 'sound/bgm/bgm_battle.mp3');
@@ -91,6 +90,9 @@ socket.on('start', (data)=>{
 
   // 音声を再生する
   bgm.play('battle', {loop: true, volume: 0.5});
+
+  // モードをプレイ中に変更
+  MODE = 'play';
 });
 
 //----------------------------------------
@@ -98,6 +100,11 @@ socket.on('start', (data)=>{
 //----------------------------------------
 // WASDを押したらサーバに送信
 window.addEventListener('keydown', (e)=>{
+  // プレイ中でなければ何もしない
+  if( MODE !== 'play' ){
+    return;
+  }
+
   const data = {
     room: user.room,
     token: user.token,
@@ -111,6 +118,19 @@ window.addEventListener('keydown', (e)=>{
 socket.on('member-move', (data)=>{    // {token:1, pos:{x:1, y:1}}
   drawUnit(data.token, data);
   console.log('member-move', data);
+});
+
+//----------------------------------------
+// STEP3. フィニッシュ
+//----------------------------------------
+socket.on('finish', (data)=>{
+  console.log('finish', data);
+
+  // 音声を停止する
+  bgm.stop('battle');
+
+  // モードを待機中に変更
+  MODE = 'wait';
 });
 
 /**

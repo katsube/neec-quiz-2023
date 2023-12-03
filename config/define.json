@@ -5,8 +5,8 @@
       "height": 768
     },
     "answer": {
-      "o":{ "x":300, "y":450, "width":150, "height":150 },
-      "x":{ "x":610, "y":450, "width":150, "height":150 }
+      "o":{ "x":300, "y":480, "width":150, "height":150 },
+      "x":{ "x":610, "y":480, "width":150, "height":150 }
     },
     "player": {
       "pos":[
