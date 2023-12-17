@@ -21,6 +21,10 @@
 
 <section id="gamewindow">
   <h1 id="question"></h1>
+
+  <div id="answer">
+    <img src="/image/quiz/correct.svg" width="80">
+  </div>
 </section>
 
 
@@ -32,7 +36,10 @@ let MODE = 'wait';   // wait:待機中, play:プレイ中
 
 const user = new User();
 const bgm = new Sound();
-bgm.add('battle', 'sound/bgm/bgm_battle.mp3');
+bgm.addAll([
+  {name:'battle', path:'sound/bgm/bgm_battle.mp3'},
+  {name:'finish', path:'sound/se/se_finish1.mp3'}
+]);
 
 //----------------------------------------
 // STEP0. 前画面の情報を取り出す
@@ -126,11 +133,29 @@ socket.on('member-move', (data)=>{    // {token:1, pos:{x:1, y:1}}
 socket.on('finish', (data)=>{
   console.log('finish', data);
 
-  // 音声を停止する
-  bgm.stop('battle');
+  // Socket.IOサーバとの接続を切る
+  socket.disconnect();
+  bgm.play('battle', {volume: 0.05});  // BGMを小さくする
+  MODE = 'wait';                       // モードを待機中に変更
 
-  // モードを待機中に変更
-  MODE = 'wait';
+  // 正解を表示する
+  bgm.play('finish', {volume: 0.5});
+  drawCorrectAnswer(data.answer);   // true or false
+
+  // 1.5秒後に結果画面に遷移する
+  setTimeout(()=>{
+    switch( data.win ){
+      case -1:
+        location.href = `result.html?result=draw`;
+        break;
+      case user.token:
+        location.href = `result.html?result=win`;
+        break;
+      default:
+        location.href = `result.html?result=lose`;
+        break;
+    }
+  }, 1500);
 });
 
 /**
@@ -212,6 +237,25 @@ function drawAnswerItem(id, pos){
   // 移動
   img.style.top = (gamewindowRect.top + pos.y) + 'px';
   img.style.left = (gamewindowRect.left + pos.x) + 'px';
+}
+
+/**
+ * 正解を表示する
+ *
+ * @param {boolean} answer 正解かどうか
+ */
+function drawCorrectAnswer(answer){
+  const id = answer? '#answer-o':'#answer-x';
+
+  // oxの座標を取得
+  const ox = document.querySelector(id);
+  const oxRect = ox.getBoundingClientRect();
+
+  // 正解を表示する
+  const div = document.querySelector('#answer');
+  div.style.top  = oxRect.top + 'px';
+  div.style.left = oxRect.left + 'px';
+  div.style.display = 'block';
 }
 </script>
 </body>

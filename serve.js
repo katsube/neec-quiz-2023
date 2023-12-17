@@ -115,10 +115,13 @@ io.on('connection', (socket) => {
 
       // 全員が回答したら結果を通知
       if( Object.keys(room.input).length >= room.members.length ){
-        //const win = util.calcResult(room.input, room.answer);
-        //console.log('[finish]', user.name, room.input, win);
-        console.log('[finish]');
-        io.to(data.room).emit('finish');
+        const win = util.calcResult(room.input, room.answer);
+        const params = {
+          answer: room.answer,
+          win: win
+        };
+
+        io.to(data.room).emit('finish', params);
       }
     }
   });
