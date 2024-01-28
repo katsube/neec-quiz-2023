@@ -93,35 +93,67 @@ io.on('connection', (socket) => {
     const room = util.findRoom(BATTLE_ROOM, data.room);
     const user = util.findMember(room, data.token);
 
+    //----------------------------------------
     // 座標を移動
+    //----------------------------------------
     const ismove = moveChara(user, data.key);
     if( ismove ){
       // メンバーへ通知
       io.to(data.room).emit('member-move', {token:user.token, pos:user.pos});
 
+      //----------------------------------------
       // あたり判定
+      //----------------------------------------
+      // ◯とユーザーが当たっている？
       if( collision({...user.pos, ...user.size}, ANSWER.o) ){
         room.input[user.token] = {token:user.token, answer:true, time:Date.now()};
         console.log('[answer - o]', user.name, room.input)
       }
+      // ×とユーザーが当たっている？
       else if( collision({...user.pos, ...user.size}, ANSWER.x) ){
         room.input[user.token] = {token:user.token, answer:false, time:Date.now()};
         console.log('[answer - x]', user.token, room.input)
       }
+      // 当たっていない
       else{
         delete room.input[user.token];
         console.log('[answer - !]', user.token, room.input)
       }
 
+      //----------------------------------------
       // 全員が回答したら結果を通知
+      //----------------------------------------
       if( Object.keys(room.input).length >= room.members.length ){
+        // 戦闘結果を計算
         const win = util.calcResult(room.input, room.answer);
-        const params = {
-          answer: room.answer,
-          win: win
-        };
 
-        io.to(data.room).emit('finish', params);
+        //----------------------------------------
+        // 勝者がいたら戦闘を終了
+        //----------------------------------------
+        if( win !== util.RESULT.DRAW ){
+          const params = {
+            answer: room.answer,
+            win: win
+          };
+          // クライアントへ通知
+          io.to(data.room).emit('finish', params);
+        }
+        //----------------------------------------
+        // 引き分けなら戦闘を続ける
+        //----------------------------------------
+        else{
+          // 部屋をリセット（問題文、キャラ座標、回答内容）
+          resetRoom(room);
+
+          // クライアントへ通知
+          const params = {
+            question: room.question,
+            members: room.members,
+          };
+
+          // クライアントへ通知
+          io.to(data.room).emit('draw', params);
+        }
       }
     }
   });
@@ -272,4 +304,30 @@ function moveChara(user, key){
   }
 
   return(ismove);
+}
+
+
+/**
+ * 部屋の問題、回答、入力情報をリセットする
+ *
+ * @param {object} room
+ * @returns {void}
+ */
+function resetRoom(room){
+  const pos = config('game.player.pos');
+
+  // 座標をリセット
+  for(let i=0; i<room.members.length; i++){
+    const member = room.members[i];
+    member.pos = pos[i];
+  }
+
+  // 回答をリセット
+  room.input = { };
+
+  // 問題文を変更
+  const q = new Question();
+  q.setQuestion();                  // 問題を決定
+  room.question = q.getQuestion();  // 部屋に問題文をセット
+  room.answer = q.getAnswer();      // 部屋に回答をセット
 }

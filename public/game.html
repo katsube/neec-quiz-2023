@@ -127,6 +127,35 @@ socket.on('member-move', (data)=>{    // {token:1, pos:{x:1, y:1}}
   console.log('member-move', data);
 });
 
+
+//-----------------------------------
+// サーバから 引き分け(draw) の合図が来たらリセット
+//-----------------------------------
+socket.on('draw', (data)=>{
+  console.log('draw', data);
+  MODE = 'wait';   // モードを待機中に変更
+
+  // 正解マークを表示する
+  drawCorrectAnswer(data.answer);   // true or false
+  bgm.play('finish', {volume: 0.5});
+
+  // 1.5秒後に次の問題を表示
+  setTimeout(()=>{
+    document.querySelector('#answer').style.display = 'none';         // 正解マークを非表示
+    document.querySelector('#question').textContent = data.question;  // 問題を表示
+
+    // キャラクター位置をリセット
+    for(let i=0; i<data.members.length; i++){
+      const member = data.members[i];
+      drawUnit(member.token, member);
+    }
+
+    // モードをプレイ中に変更
+    MODE = 'play';
+  }, 1500);
+});
+
+
 //----------------------------------------
 // STEP3. フィニッシュ
 //----------------------------------------
