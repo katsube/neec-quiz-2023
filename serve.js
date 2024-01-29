@@ -148,6 +148,7 @@ io.on('connection', (socket) => {
           // クライアントへ通知
           const params = {
             question: room.question,
+            answer: room.answer,
             members: room.members,
           };
 
